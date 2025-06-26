@@ -1,0 +1,10 @@
+## Interface: 40402
+## Title: Better|cff00c0ffBlizz|rCC
+## Notes: Loss of Control display similar to Retail but with a few improvements.
+## Version: 1.0.0
+## SavedVariables: BetterBlizzCCDB
+## IconAtlas: gmchat-icon-blizz
+## Author: Bodify
+
+BetterBlizzCC.lua
+gui.lua
