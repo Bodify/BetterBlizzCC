@@ -15,6 +15,10 @@ local function UpdateLoCFrame()
     frame.AbilityName:SetShown(not iconOnlyMode)
     frame.TimeLeft:SetShown(not iconOnlyMode)
 
+    local showCooldown = not iconOnlyMode or BetterBlizzCCDB.showCooldownOnLoC
+    frame.Icon.Cooldown:SetDrawEdge(showCooldown)
+    frame.Icon.Cooldown:SetDrawSwipe(showCooldown)
+
     frame.Icon.Cooldown:SetShown(BetterBlizzCCDB.showCooldownOnLoC or iconOnlyMode)
     frame.RedLineTop:SetShown(not BetterBlizzCCDB.hideLossOfControlFrameLines)
     frame.RedLineBottom:SetShown(not BetterBlizzCCDB.hideLossOfControlFrameLines)

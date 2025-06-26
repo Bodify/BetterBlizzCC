@@ -490,6 +490,10 @@ local function SetupLoCFrame()
     frame.Icon.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     frame.Icon.Cooldown:SetAllPoints(frame.Icon)
 
+    local showCooldown = not iconOnlyMode or BetterBlizzCCDB.showCooldownOnLoC
+    frame.Icon.Cooldown:SetDrawEdge(showCooldown)
+    frame.Icon.Cooldown:SetDrawSwipe(showCooldown)
+
     -- === Secondary Icon (e.g. root/silence/disarm) ===
     -- Create the cooldown frame
     frame.SecondaryIcon = CreateFrame("Frame", nil, frame)
