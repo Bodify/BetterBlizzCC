@@ -23,6 +23,13 @@ local function UpdateLoCFrame()
     frame.RedLineTop:SetShown(not BetterBlizzCCDB.hideLossOfControlFrameLines)
     frame.RedLineBottom:SetShown(not BetterBlizzCCDB.hideLossOfControlFrameLines)
     frame.blackBg:SetShown(not BetterBlizzCCDB.hideLossOfControlFrameBg)
+
+    --Og
+    if not LossOfControlFrame then return end
+    LossOfControlFrame:SetScale(BetterBlizzCCDB.lossOfControlScale or 1)
+    if InCombatLockdown() then return end
+    LossOfControlFrame:ClearAllPoints()
+    LossOfControlFrame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
 end
 
 local testTicker
@@ -38,7 +45,8 @@ function ToggleLossOfControlTestMode()
         testTicker = nil
     end
 
-    frame.testMode = true
+    frame.returnEarly = true
+    BBLossOfControlParentFrame:SetParent(UIParent)
 
     local now = GetTime()
     local duration = 8
@@ -78,7 +86,7 @@ function ToggleLossOfControlTestMode()
         if remaining > 0 then
             frame.TimeLeft.NumberText:SetText(string.format("%.1f seconds", remaining))
         else
-            frame.testMode = false
+            frame.returnEarly = false
 
             frame.TimeLeft.NumberText:SetText("")
             frame.fadeOutShrink:Stop()

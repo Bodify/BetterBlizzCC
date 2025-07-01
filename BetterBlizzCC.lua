@@ -1,5 +1,6 @@
 local AddonName, BetterBlizzCC = ...
 local CC = BetterBlizzCC
+local mop
 
 local interruptSpells = {
     [1766] = 5,  -- Kick (Rogue)
@@ -382,11 +383,8 @@ local function SetupLoCFrame()
         spellList[19482] = "Stunned" -- War Stomp Doom Guard Stun
         --spellList[20170]  = "Stunned" -- Seal of Justice (proc)
     else
+        mop = true
         spellList[99] = "Disoriented" -- Disorienting Roar (MoP only, 30sec debuff in cata)
-    end
-    if LossOfControlFrame then
-        print("BBF: LossOfControlFrame found. Returning Early. Report to @bodify")
-        return
     end
     local f = CreateFrame("Frame")
 
@@ -398,10 +396,16 @@ local function SetupLoCFrame()
     -- === Frame Creation ===
     local frame = CreateFrame("Frame", "BBLossOfControlFrame", parentFrame, "BackdropTemplate")
     frame:SetSize(256, 58)
-    frame:SetPoint("CENTER", UIParent, "CENTER")
+    frame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
     frame:SetFrameStrata("MEDIUM")
     frame:SetToplevel(true)
     frame:Hide()
+
+    if LossOfControlFrame then
+        LossOfControlFrame:SetScale(BetterBlizzCCDB.lossOfControlScale or 1)
+        LossOfControlFrame:ClearAllPoints()
+        LossOfControlFrame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
+    end
 
     -- === Pop-In Animation with Overshoot + Bounce ===
     frame.fadeInScale = frame:CreateAnimationGroup()
@@ -459,7 +463,7 @@ local function SetupLoCFrame()
         frame.duration = nil
         frame.expiration = nil
         frame.lockedBy = nil
-        frame.testMode = nil
+        frame.returnEarly = nil
     end)
 
 
@@ -551,6 +555,12 @@ local function SetupLoCFrame()
     frame.blackBg:SetAlpha(LossOfControlFrameAlphaBg)
     frame.RedLineTop:SetAlpha(LossOfControlFrameAlphaLines)
     frame.RedLineBottom:SetAlpha(LossOfControlFrameAlphaLines)
+
+    if LossOfControlFrame then
+        LossOfControlFrame.blackBg:SetAlpha(LossOfControlFrameAlphaBg)
+        LossOfControlFrame.RedLineTop:SetAlpha(LossOfControlFrameAlphaLines)
+        LossOfControlFrame.RedLineBottom:SetAlpha(LossOfControlFrameAlphaLines)
+    end
 
     local function GetSchoolInfo(school)
         local schoolNames = {
@@ -813,16 +823,16 @@ local function SetupLoCFrame()
     end
 
     -- === Event Registration ===
-    f:SetScript("OnEvent", function(_, _, unit)
-        if frame.testMode then return end
-        if unit == "player" then checkAuras() end
+    f:SetScript("OnEvent", function()
+        if frame.returnEarly then return end
+        checkAuras()
     end)
     f:RegisterUnitEvent("UNIT_AURA", "player")
 
     -- === Timer Update ===
     frame:SetScript("OnUpdate", function(self)
         local now = GetTime()
-        if self.expiration and not self.testMode then
+        if self.expiration and not self.returnEarly then
             local timeLeft = self.expiration - now
 
             if timeLeft <= 0 then
@@ -919,11 +929,37 @@ end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
-f:SetScript("OnEvent", function(_, event, addonName)
-    if addonName == "BetterBlizzCC" then
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:Hide()
+
+local function ShowOriginalLoC(showOg)
+    if showOg then
+        LossOfControlFrame:SetParent(UIParent)
+        BBLossOfControlParentFrame:SetParent(f)
+        BBLossOfControlFrame.returnEarly = true
+    else
+        LossOfControlFrame:SetParent(f)
+        BBLossOfControlParentFrame:SetParent(UIParent)
+        BBLossOfControlFrame.returnEarly = nil
+    end
+end
+
+f:SetScript("OnEvent", function(_, event, arg1)
+    if event == "ADDON_LOADED" and arg1 == "BetterBlizzCC" then
         InitDefaults()
         SetupLoCFrame()
         CC:CreateGUI()
-        f:UnregisterAllEvents()
+        f:UnregisterEvent("ADDON_LOADED")
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        if not mop then
+            f:UnregisterEvent("PLAYER_ENTERING_WORLD")
+            return
+        end
+        local _, instanceType = IsInInstance()
+        if instanceType == "party" or instanceType == "raid" or instanceType == "scenario" then
+            ShowOriginalLoC(true)
+        else
+            ShowOriginalLoC(false)
+        end
     end
 end)
