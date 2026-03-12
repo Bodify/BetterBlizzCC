@@ -3,7 +3,6 @@
 ## Notes: Loss of Control display similar to Retail but with a few improvements.
 ## Author: Bodify
 ## Version: @project-version@
-## SavedVariables: BetterBlizzCCDB
 ## IconAtlas: gmchat-icon-blizz
 
 Unsupported.lua
