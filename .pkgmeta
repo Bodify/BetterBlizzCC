@@ -1,0 +1,12 @@
+package-as: BetterBlizzCC
+
+ignore:
+  - .github
+  - .gitignore
+  - .vscode
+  - README.md
+  - RELEASE_NOTES.md
+
+manual-changelog:
+  filename: RELEASE_NOTES.md
+  markup-type: markdown

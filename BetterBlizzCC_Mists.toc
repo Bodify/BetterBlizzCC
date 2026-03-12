@@ -1,10 +1,11 @@
-## Interface: 50500
+## Interface: 50503, 50502
 ## Title: Better|cff00c0ffBlizz|rCC
 ## Notes: Loss of Control display similar to Retail but with a few improvements.
-## Version: 1.0.1
+## Author: Bodify
+## Version: @project-version@
 ## SavedVariables: BetterBlizzCCDB
 ## IconAtlas: gmchat-icon-blizz
-## Author: Bodify
+## X-Curse-Project-ID: 1295073
 
-BetterBlizzCC.lua
+MoP\BetterBlizzCC.lua
 gui.lua
