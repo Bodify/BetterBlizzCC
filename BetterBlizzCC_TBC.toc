@@ -6,6 +6,7 @@
 ## SavedVariables: BetterBlizzCCDB
 ## IconAtlas: gmchat-icon-blizz
 ## X-Curse-Project-ID: 1295073
+## X-Wago-ID: 56nd2AG9
 
 TBC\BetterBlizzCC.lua
 gui.lua

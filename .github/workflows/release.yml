@@ -19,5 +19,5 @@ jobs:
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}        # TOC: ## X-Curse-Project-ID: 1234
-          # WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}  # TOC: ## X-Wago-ID: abcd1234
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}  # TOC: ## X-Wago-ID: abcd1234
           # WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}  # TOC: ## X-WoWI-ID: 5678
