@@ -5,7 +5,7 @@ local mop
 local interruptSpells = {
     [1766] = 5,  -- Kick (Rogue)
     [2139] = 6,  -- Counterspell (Mage)
-    [6552] = 5,  -- Pummel (Warrior)
+    [6552] = 4,  -- Pummel (Warrior)
     [132409] = 6, -- Spell Lock (Warlock)
     [19647] = 6, -- Spell Lock (Warlock, pet)
     [47528] = 4,  -- Mind Freeze (Death Knight)
@@ -15,20 +15,20 @@ local interruptSpells = {
     [93985] = 4,  -- Skull Bash (Druid)
     [116705] = 4, -- Spear Hand Strike (Monk)
     [147362] = 3, -- Counter Shot (Hunter)
-    [183752] = 4, -- Disrupt (Demon Hunter)
-    [187707] = 3, -- Muzzle (Hunter)
-    [212619] = 6, -- Call Felhunter (Warlock)
-    [31935] = 4,  -- Avenger's Shield (Paladin)
-    [217824] = 5, -- Shield of Virtue (Protection PvP Talent)
-    [351338] = 5, -- Quell (Evoker)
-	[33871] = 6, 	-- Shield Bash (Warrior)
+    [31935] = 3,  -- Avenger's Shield (Paladin)
+    [78675] = 5, -- Solar Beam
+    [113286] = 5, -- Solar Beam (Symbiosis)
+    [26679] = 5, 	-- Deadly Throw (Rogue) (4-6 sec interrupt depending on combos(3-5))
+
+	[33871] = 8, 	-- Shield Bash (Warrior)
 	[24259] = 6, 	-- Spell Lock (Warlock)
 	[43523] = 5,	-- Unstable Affliction (Warlock)
 	--[16979] = 4, 	-- Feral Charge (Druid)
-	[26679] = 5, 	-- Deadly Throw (Rogue)
-
-    [78675] = 5, -- Solar Beam
-    [113286] = 5, -- Solar Beam (Symbiosis)
+    [119911] = 6, -- Optical Blast (Warlock Observer)
+    [115781] = 6, -- Optical Blast (Warlock Observer)
+    [102060] = 4, -- Disrupting Shout
+    [26090] = 2, -- Pummel (Gorilla)
+    [50479] = 2, -- Nethershock
     [97547] = 5, -- Solar Beam
 }
 
@@ -42,6 +42,7 @@ local spellLockReducer = {
 local interruptEvents = {
     ["SPELL_INTERRUPT"] = true,
     ["SPELL_CAST_SUCCESS"] = true,
+    ["SPELL_AURA_APPLIED"] = true, -- For Deadly Throw
 }
 
 local spellList = {
@@ -376,6 +377,7 @@ local function isMoP()
     return type(version) == "string" and version:match("^5%.") ~= nil
 end
 
+-- Poor and quick implementation of LoC frame before MoP Beta finally added native. Meant to improve later but ya know..
 local function SetupLoCFrame()
     if not isMoP() then
         spellList[2812]  = "Stunned" -- Holy Wrath
@@ -393,7 +395,6 @@ local function SetupLoCFrame()
 
     local iconOnlyMode = BetterBlizzCCDB.lossOfControlIconOnly
 
-    -- === Frame Creation ===
     local frame = CreateFrame("Frame", "BBLossOfControlFrame", parentFrame, "BackdropTemplate")
     frame:SetSize(256, 58)
     frame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
@@ -407,10 +408,8 @@ local function SetupLoCFrame()
         LossOfControlFrame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
     end
 
-    -- === Pop-In Animation with Overshoot + Bounce ===
     frame.fadeInScale = frame:CreateAnimationGroup()
 
-    -- Fade In
     frame.fadeIn = frame.fadeInScale:CreateAnimation("Alpha")
     frame.fadeIn:SetFromAlpha(0)
     frame.fadeIn:SetToAlpha(1)
@@ -418,15 +417,13 @@ local function SetupLoCFrame()
     frame.fadeIn:SetOrder(1)
     frame.fadeIn:SetSmoothing("OUT")
 
-    -- First scale: overshoot (larger than normal)
     frame.scaleOvershoot = frame.fadeInScale:CreateAnimation("Scale")
     frame.scaleOvershoot:SetScaleFrom(0.85, 0.85)
-    frame.scaleOvershoot:SetScaleTo(1.1, 1.1) -- slight overshoot
+    frame.scaleOvershoot:SetScaleTo(1.1, 1.1)
     frame.scaleOvershoot:SetDuration(0.08)
     frame.scaleOvershoot:SetOrder(1)
     frame.scaleOvershoot:SetSmoothing("OUT")
 
-    -- Second scale: settle back to normal
     frame.scaleSettle = frame.fadeInScale:CreateAnimation("Scale")
     frame.scaleSettle:SetScaleFrom(1.1, 1.1)
     frame.scaleSettle:SetScaleTo(1, 1)
@@ -436,7 +433,6 @@ local function SetupLoCFrame()
 
     frame.fadeInScale:SetToFinalAlpha(true)
 
-    -- === Fade-Out + Shrink Animation ===
     frame.fadeOutShrink = frame:CreateAnimationGroup()
 
     frame.fadeOut = frame.fadeOutShrink:CreateAnimation("Alpha")
@@ -455,7 +451,6 @@ local function SetupLoCFrame()
 
     frame.fadeOutShrink:SetToFinalAlpha(false)
 
-    -- Hide the frame after animation ends
     frame.fadeOutShrink:SetScript("OnFinished", function()
         frame:Hide()
         frame:SetAlpha(1)
@@ -466,9 +461,6 @@ local function SetupLoCFrame()
         frame.returnEarly = nil
     end)
 
-
-
-    -- === Red Lines ===
     frame.RedLineTop = frame:CreateTexture(nil, "BACKGROUND")
     frame.RedLineTop:SetTexture("Interface\\Cooldown\\Loc-RedLine")
     frame.RedLineTop:SetSize(iconOnlyMode and 70 or 236, 27)
@@ -480,13 +472,11 @@ local function SetupLoCFrame()
     frame.RedLineBottom:SetPoint("TOP", frame, "BOTTOM")
     frame.RedLineBottom:SetTexCoord(0, 1, 1, 0)
 
-    -- === Background ===
     frame.blackBg = frame:CreateTexture(nil, "BACKGROUND")
     frame.blackBg:SetTexture("Interface\\Cooldown\\loc-shadowbg")
     frame.blackBg:SetPoint("TOPLEFT", frame.RedLineTop, "BOTTOMLEFT")
     frame.blackBg:SetPoint("BOTTOMRIGHT", frame.RedLineBottom, "TOPRIGHT")
 
-    -- === Icon ===
     frame.Icon = frame:CreateTexture(nil, "ARTWORK")
     frame.Icon:SetSize(48, 48)
     frame.Icon:SetPoint("CENTER", frame, "CENTER", iconOnlyMode and 0 or -70, 0)
@@ -498,8 +488,6 @@ local function SetupLoCFrame()
     frame.Icon.Cooldown:SetDrawEdge(showCooldown)
     frame.Icon.Cooldown:SetDrawSwipe(showCooldown)
 
-    -- === Secondary Icon (e.g. root/silence/disarm) ===
-    -- Create the cooldown frame
     frame.SecondaryIcon = CreateFrame("Frame", nil, frame)
     frame.SecondaryIcon:SetSize(35, 35)
     frame.SecondaryIcon:SetPoint("RIGHT", frame.Icon, "LEFT", -4, 0)
@@ -512,19 +500,16 @@ local function SetupLoCFrame()
         cooldownSwipe:SetAllPoints(frame.SecondaryIcon)
     end
 
-    -- Add your own icon on top
     frame.SecondaryIcon.icon = frame.SecondaryIcon:CreateTexture(nil, "ARTWORK")
     frame.SecondaryIcon.icon:SetAllPoints()
     frame.SecondaryIcon.icon:SetTexture(nil)
 
-    -- === School Text for Main Icon ===
     frame.Icon.SchoolText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.Icon.SchoolText:SetPoint("BOTTOM", frame.Icon, "BOTTOM", 0, 1)
     frame.Icon.SchoolText:SetJustifyH("CENTER")
     frame.Icon.SchoolText:SetTextColor(1, 1, 1)
     frame.Icon.SchoolText:SetFont("Interface/Addons/BetterBlizzPlates/media/Prototype.ttf", 11, "OUTLINE")
 
-    -- === School Text for Secondary Icon ===
     frame.SecondaryIcon.SchoolText = frame.SecondaryIcon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.SecondaryIcon.SchoolText:SetPoint("BOTTOM", frame.SecondaryIcon, "BOTTOM", 0, 1)
     frame.SecondaryIcon.SchoolText:SetJustifyH("CENTER")
@@ -532,12 +517,10 @@ local function SetupLoCFrame()
     frame.SecondaryIcon.SchoolText:SetFont("Interface/Addons/BetterBlizzPlates/media/Prototype.ttf", 9, "OUTLINE")
     frame.SecondaryIcon.SchoolText:SetDrawLayer("OVERLAY", 7) -- ensures it's above cooldown
 
-    -- === CC Type Text ===
     frame.AbilityName = frame:CreateFontString(nil, "ARTWORK", "MovieSubtitleFont")
     frame.AbilityName:SetPoint("TOPLEFT", frame.Icon, "TOPRIGHT", 5, -4)
     frame.AbilityName:SetSize(0, 20)
 
-    -- === Time Left ===
     frame.TimeLeft = CreateFrame("Frame", nil, frame)
     frame.TimeLeft:SetSize(200, 20)
     frame.TimeLeft:SetPoint("TOPLEFT", frame.AbilityName, "BOTTOMLEFT")
@@ -610,11 +593,66 @@ local function SetupLoCFrame()
         return unpack(schoolNames[school] or {"Interrupted", 1, 1, 1})
     end
 
-    -- === Aura Scan Logic ===
     local function checkAuras()
         local mainHardCC, secondHardCC, silence, disarm, root
         local interrupt = frame.interruptData
         local now = GetTime()
+
+        if BetterBlizzCCDB.lossOfControlInterruptsOnly then
+            -- Only show interrupts, ignore all other logic
+            local main = interrupt
+            local secondary = nil
+
+            -- Clear expired
+            if main and main.expiration <= now then
+                frame.interruptData = nil
+                main = nil
+            end
+
+            frame.mainCC = main
+            frame.secondaryCC = secondary
+
+            if main then
+                if frame.fadeOutShrink:IsPlaying() then
+                    frame.fadeOutShrink:Stop()
+                end
+
+                frame.Icon:SetTexture(main.icon)
+                if frame.Icon.Cooldown then
+                    frame.Icon.Cooldown:SetCooldown(main.expiration - main.duration, main.duration)
+                end
+
+                local name, r, g, b = GetSchoolInfo(main.school)
+                frame.AbilityName:SetText("Interrupted")
+                frame.AbilityName:SetTextColor(r, g, b)
+
+                frame.duration = main.duration
+                frame.expiration = main.expiration
+                frame.lockedBy = main.spellID
+
+                if not frame:IsShown() then
+                    frame:SetAlpha(0)
+                    frame:SetScale(0.85)
+                    frame:Show()
+                    frame.fadeInScale:Stop()
+                    frame.fadeInScale:Play()
+                end
+
+                frame.Icon.SchoolText:SetText(name)
+                frame.Icon.SchoolText:SetTextColor(r, g, b)
+
+                frame.SecondaryIcon:Hide()
+                frame.SecondaryIcon.SchoolText:SetText("")
+            else
+                if not frame.fadeOutShrink:IsPlaying() then
+                    frame.fadeOutShrink:Stop()
+                    frame.fadeOutShrink:Play()
+                end
+                frame.Icon.SchoolText:SetText("")
+            end
+
+            return
+        end
 
         local function getAuraData()
             for i = 1, 40 do
@@ -698,7 +736,6 @@ local function SetupLoCFrame()
             interrupt = nil
         end
 
-        -- === Priority Logic ===
         local main, secondary
         local fullCC = mainHardCC
 
@@ -735,12 +772,9 @@ local function SetupLoCFrame()
             secondary = nil
         end
 
-
-        -- Assign to frame
         frame.mainCC = main
         frame.secondaryCC = secondary
 
-        -- === Main Display ===
         if main then
             if frame.fadeOutShrink:IsPlaying() then
                 frame.fadeOutShrink:Stop()
@@ -751,13 +785,13 @@ local function SetupLoCFrame()
                 frame.Icon.Cooldown:SetCooldown(main.expiration - main.duration, main.duration)
             end
 
-            local r, g, b = 1, 0.819, 0
+            local name, r, g, b = nil, 1, 0.819, 0
             if main.type == "Silenced" and interrupt then
                 frame.AbilityName:SetText("Silenced+")
-                _, r, g, b = GetSchoolInfo(interrupt.school)
+                name, r, g, b = GetSchoolInfo(interrupt.school)
             elseif main == interrupt then
                 frame.AbilityName:SetText("Interrupted")
-                _, r, g, b = GetSchoolInfo(interrupt.school)
+                name, r, g, b = GetSchoolInfo(interrupt.school)
             else
                 frame.AbilityName:SetText(main.type or "unknown")
             end
@@ -795,7 +829,6 @@ local function SetupLoCFrame()
             frame.Icon.SchoolText:SetText("")
         end
 
-        -- === Secondary Display ===
         if secondary then
             frame.SecondaryIcon.icon:SetTexture(secondary.icon)
             frame.SecondaryIcon.Cooldown:SetCooldown(secondary.expiration - secondary.duration, secondary.duration)
@@ -822,14 +855,22 @@ local function SetupLoCFrame()
         end
     end
 
-    -- === Event Registration ===
     f:SetScript("OnEvent", function()
         if frame.returnEarly then return end
         checkAuras()
     end)
     f:RegisterUnitEvent("UNIT_AURA", "player")
 
-    -- === Timer Update ===
+    function CC:RegisterEvent()
+        if BetterBlizzCCDB.lossOfControlInterruptsOnly then
+            f:UnregisterAllEvents()
+        else
+            f:RegisterUnitEvent("UNIT_AURA", "player")
+        end
+    end
+    CC:RegisterEvent()
+
+    -- Timer Update
     frame:SetScript("OnUpdate", function(self)
         local now = GetTime()
         if self.expiration and not self.returnEarly then
@@ -840,7 +881,7 @@ local function SetupLoCFrame()
             else
                 self.TimeLeft.NumberText:SetText(string.format("%.1f seconds", timeLeft))
 
-                -- ⛏ Check if secondary interrupt has expired
+                -- Check if secondary interrupt has expired
                 if self.interruptData and self.secondaryCC == self.interruptData and self.interruptData.expiration <= now then
                     self.interruptData = nil
                     checkAuras()
@@ -849,9 +890,6 @@ local function SetupLoCFrame()
         end
     end)
 
-
-
-    -- === Interrupt Tracking ===
     frame.interruptWatcher = CreateFrame("Frame")
     frame.interruptWatcher:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame.interruptWatcher:SetScript("OnEvent", function()

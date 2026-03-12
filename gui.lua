@@ -278,6 +278,15 @@ function CC:CreateGUI()
     CreateTooltip(hideLossOfControlFrameLines, "Hide CC Red Lines", "Hide the red lines on top and bottom of the Loss of Control frame (displaying CC on you)")
     hideLossOfControlFrameLines:HookScript("OnClick", ToggleLossOfControlTestMode)
 
+    local lossOfControlInterruptsOnly = CreateCheckbox("lossOfControlInterruptsOnly", "Interrupts Only", optionsPanel)
+    lossOfControlInterruptsOnly:SetPoint("TOPLEFT", hideLossOfControlFrameLines, "BOTTOMLEFT", 0, 3)
+    CreateTooltip(lossOfControlInterruptsOnly, "Interrupts Only", "Show for Interrupts only")
+    lossOfControlInterruptsOnly:HookScript("OnClick", function()
+        if CC.RegisterEvent then
+            CC:RegisterEvent()
+        end
+    end)
+
     local lossOfControlScale = CreateSlider(optionsPanel, "Scale", 0.4, 1.5, 0.01, "lossOfControlScale")
     lossOfControlScale:SetPoint("LEFT", lossOfControlIconOnly.text, "RIGHT", 45, -6)
     CreateTooltip(lossOfControlScale, "Loss of Control Scale", "Adjust the scale of the CC Frame.")
