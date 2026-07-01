@@ -1,4 +1,4 @@
-## Interface: 50503, 50502
+## Interface: 50504
 ## Title: Better|cff00c0ffBlizz|rCC
 ## Notes: Loss of Control display similar to Retail but with a few improvements.
 ## Author: Bodify

@@ -44,6 +44,26 @@ local spellLockReducer = {
     --[383020] = 0.5, -- Tranquil Air
 }
 
+-- Items with equip: reduces silence/interrupt duration by 20%
+local silenceReductionItems = {
+    [30008] = 0.8, -- Pendant of the Lost Ages (neck)
+    [29347] = 0.8, -- Talisman of the Breaker (neck)
+    [21517] = 0.8, -- (head)
+}
+
+local silenceReduction = 1
+
+local function UpdateSilenceReduction()
+    local headItem = GetInventoryItemID("player", 1) -- slot 1 = head
+    local neckItem = GetInventoryItemID("player", 2) -- slot 2 = neck
+    -- Does not stack; apply once if either slot has a matching item
+    if (headItem and silenceReductionItems[headItem]) or (neckItem and silenceReductionItems[neckItem]) then
+        silenceReduction = 0.8
+    else
+        silenceReduction = 1
+    end
+end
+
 local interruptEvents = {
     ["SPELL_INTERRUPT"] = true,
     ["SPELL_CAST_SUCCESS"] = true,
@@ -447,13 +467,9 @@ local spellList = {
     [14327]   = "Feared",    -- Scare Beast
     [20407]   = "Seduced",    -- Seduction
     [30850]   = "Seduced",    -- Seduction
-    [24131]   = "Asleep",    -- Wyvern Sting
     [24132]   = "Asleep",    -- Wyvern Sting
     [24133]   = "Asleep",    -- Wyvern Sting
-    [24134]   = "Asleep",    -- Wyvern Sting
-    [24135]   = "Asleep",    -- Wyvern Sting
     [27068]   = "Asleep",    -- Wyvern Sting
-    [27069]   = "Asleep",    -- Wyvern Sting
     [18647]   = "Incapacitated",    -- Banish
     [34097]   = "Disarmed",    -- Riposte 2 (TODO: not sure which ID is correct)
 
@@ -999,6 +1015,14 @@ local function SetupLoCFrame()
         end
     end)
 
+    local equipWatcher = CreateFrame("Frame")
+    equipWatcher:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    equipWatcher:SetScript("OnEvent", function(_, _, slotID)
+        if slotID == 1 or slotID == 2 then -- head or neck slot
+            UpdateSilenceReduction()
+        end
+    end)
+
     frame.interruptWatcher = CreateFrame("Frame")
     frame.interruptWatcher:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame.interruptWatcher:SetScript("OnEvent", function()
@@ -1045,6 +1069,8 @@ local function SetupLoCFrame()
                 duration = duration * mult
             end
         end
+
+        duration = duration * silenceReduction
 
         -- Store interrupt data for aura scan logic
         local schoolName = GetSchoolInfo(school)
@@ -1100,5 +1126,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
         SetupLoCFrame()
         CC:CreateGUI()
         f:UnregisterEvent("ADDON_LOADED")
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        UpdateSilenceReduction()
     end
 end)
