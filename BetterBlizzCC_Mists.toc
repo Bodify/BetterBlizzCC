@@ -8,5 +8,12 @@
 ## X-Curse-Project-ID: 1295073
 ## X-Wago-ID: 56nd2AG9
 
-MoP\BetterBlizzCC.lua
-gui.lua
+embeds.xml
+GUI\BetterBlizzGUI.lua
+GUI\BBGPopup.lua
+Core\Constants.lua
+Core\BetterBlizzCC.lua
+Core\Profiles.lua
+Shared\timerFormatter.lua
+Shared\lossOfControl.lua
+GUI\GUI.lua

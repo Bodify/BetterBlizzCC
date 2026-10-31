@@ -1,0 +1,27 @@
+local addonName, CC = ...
+
+CC.defaultSettings = {
+    enableLoCFrame = true,
+    showCooldownOnLoC = true,
+    hideLossOfControlFrameBg = false,
+    hideLossOfControlFrameLines = false,
+    lossOfControlScale = 1,
+    lossOfControlXPos = 0,
+    lossOfControlYPos = 0,
+    lossOfControlIconOnly = false,
+    lossOfControlTextPosition = "RIGHT",
+    lossOfControlSecondaryPosition = "LEFT",
+    lossOfControlTextScale = 1,
+    lossOfControlCountdownScale = 1,
+    lossOfControlTimerScale = 1,
+    lossOfControlShowSecondIcon = true,
+    lossOfControlSecondIconInterruptsOnly = true,
+    lossOfControlShowSchool = true,
+    lossOfControlSecondIconScale = 0.75,
+    lossOfControlTimerMilliseconds = true,
+    lossOfControlTimerLowThreshold = 3,
+    lossOfControlTimerHighThreshold = 10,
+    lossOfControlTimerLowColor = { 1, 0.1, 0.1, 1 },
+    lossOfControlTimerBaseColor = { 1, 1, 1, 1 },
+    lossOfControlTimerHighColor = { 1, 1, 1, 1 },
+}

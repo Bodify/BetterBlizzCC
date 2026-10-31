@@ -1,8 +1,19 @@
-## Interface: 120007
+## Interface: 120105, 120100
 ## Title: Better|cff00c0ffBlizz|rCC
 ## Notes: Loss of Control display similar to Retail but with a few improvements.
 ## Author: Bodify
 ## Version: @project-version@
+## SavedVariables: BetterBlizzCCDB
 ## IconAtlas: gmchat-icon-blizz
+## X-Curse-Project-ID: 1295073
+## X-Wago-ID: 56nd2AG9
 
-Unsupported.lua
+embeds.xml
+GUI\BetterBlizzGUI.lua
+GUI\BBGPopup.lua
+Core\Constants.lua
+Core\BetterBlizzCC.lua
+Core\Profiles.lua
+Shared\timerFormatter.lua
+Shared\lossOfControl.lua
+GUI\GUI.lua

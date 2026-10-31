@@ -1,43 +1,25 @@
-local AddonName, BetterBlizzCC = ...
-local CC = BetterBlizzCC
-local mop
+local addonName, CC = ...
 
-local interruptSpells = {
-    [1766] = 5,  -- Kick (Rogue)
-    [2139] = 6,  -- Counterspell (Mage)
-    [6552] = 4,  -- Pummel (Warrior)
-    [132409] = 6, -- Spell Lock (Warlock)
-    [19647] = 6, -- Spell Lock (Warlock, pet)
-    [47528] = 4,  -- Mind Freeze (Death Knight)
-    [57994] = 3,  -- Wind Shear (Shaman)
-    [91807] = 2,  -- Shambling Rush (Death Knight)
-    [96231] = 4,  -- Rebuke (Paladin)
-    [93985] = 4,  -- Skull Bash (Druid)
-    [116705] = 4, -- Spear Hand Strike (Monk)
-    [147362] = 3, -- Counter Shot (Hunter)
-    [31935] = 3,  -- Avenger's Shield (Paladin)
-    [78675] = 5, -- Solar Beam
-    [113286] = 5, -- Solar Beam (Symbiosis)
-    [26679] = 5, 	-- Deadly Throw (Rogue) (4-6 sec interrupt depending on combos(3-5))
-
-	[33871] = 8, 	-- Shield Bash (Warrior)
-	[24259] = 6, 	-- Spell Lock (Warlock)
-	[43523] = 5,	-- Unstable Affliction (Warlock)
-	--[16979] = 4, 	-- Feral Charge (Druid)
-    [119911] = 6, -- Optical Blast (Warlock Observer)
-    [115781] = 6, -- Optical Blast (Warlock Observer)
-    [102060] = 4, -- Disrupting Shout
-    [26090] = 2, -- Pummel (Gorilla)
-    [50479] = 2, -- Nethershock
-    [97547] = 5, -- Solar Beam
-}
+local interruptSpells = CC.LoCInterrupts or {}
 
 -- Buffs that reduce interrupt duration
 local spellLockReducer = {
-    -- [317920] = 0.7, -- Concentration Aura
-    -- [234084] = 0.5, -- Moon and Stars
-    -- [383020] = 0.5, -- Tranquil Air
+    --[317920] = 0.7, -- Concentration Aura
+    --[234084] = 0.5, -- Moon and Stars
+    --[383020] = 0.5, -- Tranquil Air
 }
+
+-- Items with equip: reduces silence/interrupt duration (Data/Spells, TBC only)
+local silenceReductionItems = CC.LoCSilenceReductionItems
+
+local silenceReduction = 1
+
+local function UpdateSilenceReduction()
+    local headItem = GetInventoryItemID("player", 1) -- slot 1 = head
+    local neckItem = GetInventoryItemID("player", 2) -- slot 2 = neck
+    -- Does not stack; apply once if either slot has a matching item
+    silenceReduction = (headItem and silenceReductionItems[headItem]) or (neckItem and silenceReductionItems[neckItem]) or 1
+end
 
 local interruptEvents = {
     ["SPELL_INTERRUPT"] = true,
@@ -45,309 +27,7 @@ local interruptEvents = {
     ["SPELL_AURA_APPLIED"] = true, -- For Deadly Throw
 }
 
-local spellList = {
-    -- *** Incapacitate Effects ***
-    [2637]   = "Asleep", -- Hibernate
-    [3355]   = "Frozen", -- Freezing Trap Effect
-    [19386]  = "Asleep", -- Wyvern Sting
-    [118]    = "Polymorphed", -- Polymorph
-    [28271]  = "Polymorphed", -- Polymorph: Turtle
-    [28272]  = "Polymorphed", -- Polymorph: Pig
-    [61025]  = "Polymorphed", -- Polymorph: Serpent
-    [61721]  = "Polymorphed", -- Polymorph: Rabbit
-    [61780]  = "Polymorphed", -- Polymorph: Turkey
-    [61305]  = "Polymorphed", -- Polymorph: Black Cat
-    [82691]  = "Frozen", -- Ring of Frost
-    [115078] = "Incapacitated", -- Paralysis
-    [20066]  = "Incapacitated", -- Repentance
-    [9484]   = "Shackled", -- Shackle Undead
-    [1776]   = "Gouged", -- Gouge
-    [6770]   = "Sapped", -- Sap
-    [76780]  = "Incapacitated", -- Bind Elemental
-    [51514]  = "Hexed", -- Hex
-    [710]    = "Incapacitated", -- Banish
-    [107079] = "Incapacitated", -- Quaking Palm (Racial)
-
-    -- *** Disorient Effects ***
-    --[99]     = "Disoriented", -- Disorienting Roar (MoP only, 30sec debuff in cata)
-    [19503]  = "Disoriented", -- Scatter Shot
-    [31661]  = "Disoriented", -- Dragon's Breath
-    [123393] = "Disoriented", -- Glyph of Breath of Fire
-    [88625]  = "Disoriented", -- Holy Word: Chastise
-    [105421] = "Disoriented", -- Blinding Light
-
-    -- *** Controlled Stun Effects ***
-    [108194] = "Stunned", -- Asphyxiate
-    [91800]  = "Stunned", -- Gnaw (Ghoul)
-    [91797]  = "Stunned", -- Monstrous Blow (Dark Transformation Ghoul)
-    [115001] = "Stunned", -- Remorseless Winter
-    [102795] = "Stunned", -- Bear Hug
-    [5211]   = "Stunned", -- Mighty Bash
-    [9005]   = "Stunned", -- Pounce
-    [22570]  = "Stunned", -- Maim
-    [113801] = "Stunned", -- Bash (Treants)
-    [117526] = "Stunned", -- Binding Shot
-    [24394]  = "Stunned", -- Intimidation
-    [126246] = "Stunned", -- Lullaby (Crane pet) -- TODO: verify category
-    [126423] = "Stunned", -- Petrifying Gaze (Basilisk pet) -- TODO: verify category
-    [126355] = "Stunned", -- Quill (Porcupine pet) -- TODO: verify category
-    [90337]  = "Stunned", -- Bad Manner (Monkey)
-    [56626]  = "Stunned", -- Sting (Wasp)
-    [50519]  = "Stunned", -- Sonic Blast
-    [118271] = "Stunned", -- Combustion
-    [44572]  = "Stunned", -- Deep Freeze
-    [119392] = "Stunned", -- Charging Ox Wave
-    [122242] = "Stunned", -- Clash
-    [120086] = "Stunned", -- Fists of Fury
-    [119381] = "Stunned", -- Leg Sweep
-    [115752] = "Stunned", -- Blinding Light (Glyphed)
-    [853]    = "Stunned", -- Hammer of Justice
-    [110698] = "Stunned", -- Hammer of Justice (Symbiosis)
-    [119072] = "Stunned", -- Holy Wrath
-    [105593] = "Stunned", -- Fist of Justice
-    [408]    = "Stunned", -- Kidney Shot
-    [1833]   = "Stunned", -- Cheap Shot
-    [118345] = "Stunned", -- Pulverize (Primal Earth Elemental)
-    [118905] = "Stunned", -- Static Charge (Capacitor Totem)
-    [89766]  = "Stunned", -- Axe Toss (Felguard)
-    [22703]  = "Stunned", -- Inferno Effect
-    [30283]  = "Stunned", -- Shadowfury
-    [132168] = "Stunned", -- Shockwave
-    [107570] = "Stunned", -- Storm Bolt
-    [20549]  = "Stunned", -- War Stomp (Racial)
-    [7922]   = "Stunned", -- Charge Stun
-    [58861]  = "Stunned", -- Bash (Spirit Wolves)
-    [12809]  = "Stunned", -- Concussion Blow
-    [60995]  = "Stunned", -- Demon Charge
-    [47481]  = "Stunned", -- Gnaw (Pet variant)
-    [85388]  = "Stunned", -- Throwdown
-    [20253]  = "Stunned", -- Intercept
-    [30153]  = "Stunned", -- Pursuit
-    [6572]   = "Stunned", -- Ravage
-    [39796]  = "Stunned", -- Stoneclaw Stun
-    [34510]  = "Stunned", -- Stun (proc)
-    [12355]  = "Stunned", -- Impact
-    [23454]  = "Stunned", -- Stun (generic)
-    [132169] = "Stunned", -- Storm Bolt
-    [96201] = "Stunned", -- Web Wrap
-    [122057] = "Stunned", -- Clash
-    [15618] = "Stunned", -- Snap Kick
-    [127361] = "Stunned", -- Bear Hug
-    [102546]  = "Stunned", -- Pounce
-    --[19577]  = "Stunned", -- Intimidation (?)
-
-    -- *** Non-controlled Stun Effects ***
-    [113953] = "Stunned", -- Paralysis
-    [118895] = "Stunned", -- Dragon Roar
-    [77505]  = "Stunned", -- Earthquake
-    [100]    = "Stunned", -- Charge
-    [118000] = "Stunned", -- Dragon Roar
-
-    -- *** Fear Effects ***
-    [113004] = "Feared", -- Intimidating Roar (Symbiosis)
-    [113056] = "Feared", -- Intimidating Roar (Symbiosis 2)
-    [1513]   = "Feared", -- Scare Beast
-    [10326]  = "Feared", -- Turn Evil
-    [145067] = "Feared", -- Turn Evil (Evil is a Point of View)
-    [1450679] ="Feared", -- Turn Evil
-    [8122]   = "Feared", -- Psychic Scream
-    [113792] = "Feared", -- Psychic Terror (Psyfiend)
-    [2094]   = "Blinded", -- Blind (Fear DR)
-    [5782]   = "Feared", -- Fear
-    [130616] = "Feared", -- Fear
-    [118699] = "Feared", -- Fear 2
-    [5484]   = "Feared", -- Howl of Terror
-    [115268] = "Seduced", -- Mesmerize (Shivarra)
-    [6358]   = "Seduced", -- Seduction (Succubus)
-    [104045] = "Feared", -- Sleep (Metamorphosis) -- TODO: verify this is the correct category
-    [5246]   = "Feared", -- Intimidating Shout
-    [20511]  = "Feared", -- Intimidating Shout (secondary targets
-    [87204] = "Feared",  -- Sin and Punishment
-
-    -- *** Controlled Root Effects ***
-    [96294]  = "Rooted", -- Chains of Ice (Chilblains Root)
-    [339]    = "Rooted", -- Entangling Roots
-    [113275] = "Rooted", -- Entangling Roots (Symbiosis)
-    [102359] = "Rooted", -- Mass Entanglement
-    [19975]  = "Rooted", -- Nature's Grasp
-    [128405] = "Rooted", -- Narrow Escape
-    --[53148]  = "Rooted", -- Charge (Tenacity pet)
-    [90327]  = "Rooted", -- Lock Jaw (Dog)
-    [54706]  = "Rooted", -- Venom Web Spray (Silithid)
-    [50245]  = "Rooted", -- Pin (Crab)
-    [4167]   = "Rooted", -- Web (Spider)
-    [33395]  = "Rooted", -- Freeze (Water Elemental)
-    [122]    = "Rooted", -- Frost Nova
-    [110693] = "Rooted", -- Frost Nova (Symbiosis)
-    [116706] = "Rooted", -- Disable
-    [87194]  = "Rooted", -- Glyph of Mind Blast
-    [114404] = "Rooted", -- Void Tendrils
-    [115197] = "Rooted", -- Partial Paralysis
-    [63685]  = "Rooted", -- Freeze (Frost Shock)
-    [107566] = "Rooted", -- Staggering Shout
-    [113770] = "Rooted", -- Entangling Roots
-    [105771] = "Rooted", -- Warbringer
-    [53148] = "Rooted", -- Charge
-    [136634] = "Rooted", -- Narrow Escape
-    --[127797] = "Rooted", -- Ursol's Vortex
-    [81210] = "Rooted", -- Net
-    [91807] = "Rooted",   -- Shambling Rush
-
-    -- *** Non-controlled Root Effects ***
-    [64803]  = "Rooted", -- Entrapment
-    [111340] = "Rooted", -- Ice Ward
-    [123407] = "Rooted", -- Spinning Fire Blossom
-    [64695]  = "Rooted", -- Earthgrab Totem
-    [25999]  = "Rooted", -- Boar Charge
-    [19306]  = "Rooted", -- Counterattack
-    [115757] = "Rooted", -- Frost Nova (alt?)
-    [35963]  = "Rooted", -- Improved Wing Clip
-    [19185]  = "Rooted", -- Entrapment (Hunter talent version)
-    [23694]  = "Rooted", -- Improved Hamstring
-    [135373] = "Rooted", -- Entrapment
-    [45334]  = "Rooted", -- Immobilized
-
-    -- *** Disarm Weapon Effects ***
-    [50541]  = "Disarmed", -- Clench (Scorpid)
-    [91644]  = "Disarmed", -- Snatch (Bird of Prey)
-    [117368] = "Disarmed", -- Grapple Weapon
-    [126458] = "Disarmed", -- Grapple Weapon (Symbiosis)
-    [137461] = "Disarmed", -- Ring of Peace (Disarm effect)
-    [64058]  = "Disarmed", -- Psychic Horror (Disarm Effect)
-    [51722]  = "Disarmed", -- Dismantle
-    [118093] = "Disarmed", -- Disarm (Voidwalker/Voidlord)
-    [676]    = "Disarmed", -- Disarm
-    [15752]  = "Disarmed", -- Disarm (Warrior talent)
-    [14251]  = "Disarmed", -- Riposte
-    [142896] = "Disarmed", -- Disarmed
-
-    -- *** Silence Effects ***
-    -- [108194] = "Silenced", -- Asphyxiate (TODO: check silence id)
-    [47476]  = "Silenced", -- Strangulate
-    [114238] = "Silenced", -- Glyph of Fae Silence
-    [34490]  = "Silenced", -- Silencing Shot
-    [102051] = "Silenced+", -- Frostjaw
-    [55021]  = "Silenced", -- Counterspell
-    [137460] = "Silenced", -- Ring of Peace (Silence effect)
-    [116709] = "Silenced", -- Spear Hand Strike
-    [31935]  = "Silenced", -- Avenger's Shield
-    [15487]  = "Silenced", -- Silence
-    [1330]   = "Silenced", -- Garrote
-    [24259]  = "Silenced", -- Spell Lock
-    [115782] = "Silenced", -- Optical Blast (Observer)
-    [18498]  = "Silenced", -- Silenced - Gag Order
-    [50613]  = "Silenced", -- Arcane Torrent (Racial, Runic Power)
-    [28730]  = "Silenced", -- Arcane Torrent (Racial, Mana)
-    [25046]  = "Silenced", -- Arcane Torrent (Racial, Energy)
-    [69179]  = "Silenced", -- Arcane Torrent (Racial, Rage)
-    [80483]  = "Silenced", -- Arcane Torrent (Racial, Focus)
-    [18469]  = "Silenced", -- Improved Counterspell (Mage)
-    [18425]  = "Silenced", -- Improved Kick (Rogue)
-    [43523]  = "Silenced", -- Unstable Affliction (Silence effect)
-    [106839] = "Silenced", -- Skull Bash (Feral)
-    [147362] = "Silenced", -- Countershot (Hunter)
-    [171138] = "Silenced", -- Shadow Lock (Warlock)
-    [183752] = "Silenced", -- Consume Magic (Demon Hunter)
-    [187707] = "Silenced", -- Muzzle (Hunter)
-    [212619] = "Silenced", -- Call Felhunter (Warlock)
-    [231665] = "Silenced", -- Avenger's Shield (Ret/Prot Paladin)
-    [351338] = "Silenced", -- Quell (Evoker)
-    [97547]  = "Silenced", -- Solar Beam
-    [78675] =  "Silenced", -- Solar Beam
-    [113286] = "Silenced", -- Solar Beam
-    [81261] =  "Silenced", -- Solar Beam
-    [142895] = "Silenced", -- Ring of Peace(?) Silence
-    [31117]  = "Silenced", -- Unstable Affliction
-
-    -- *** Horror Effects ***
-    [64044]  = "Horrified", -- Psychic Horror
-    [137143] = "Horrified", -- Blood Horror
-    [6789]   = "Horrified", -- Death Coil
-
-    -- *** Mind Control Effects ***
-    [605]   = "Mind Controlled", -- Dominate Mind
-    [13181] = "Mind Controlled", -- Gnomish Mind Control Cap (Item)
-    [67799] = "Mind Controlled", -- Mind Amplification Dish (Item)
-
-    -- *** Spells that DRs with itself only ***
-    [33786]  = "Cycloned", -- Cyclone
-    [113506] = "Cycloned", -- Cyclone (Symbiosis)
-
-
-    -- ##########################
-    -- Cata Bonus Ones, mop above, needs verifying
-    -- ##########################
-    -- *** Incapacitate Effects ***
-    [49203] = "Incapacitated", -- Hungering Cold
-
-    -- *** Controlled Stun Effects ***
-    [93433] = "Stunned", -- Burrow Attack (Worm)
-    [83046] = "Stunned", -- Improved Polymorph (Rank 1)
-    [83047] = "Stunned", -- Improved Polymorph (Rank 2)
-    --[2812]  = "Stunned", -- Holy Wrath
-    --[88625] = "Stunned", -- Holy Word: Chastise
-    [93986] = "Stunned", -- Aura of Foreboding
-    [54786] = "Stunned", -- Demon Leap
-    [46968] = "Stunned", -- Shockwave
-
-    -- *** Non-controlled Stun Effects ***
-    [85387] = "Stunned", -- Aftermath
-    [15283] = "Stunned", -- Stunning Blow (Weapon Proc)
-    [56]    = "Stunned", -- Stun (Weapon Proc)
-
-    -- *** Fear Effects ***
-    [5134]  = "Feared", -- Flash Bomb Fear (Item)
-
-    -- *** Controlled Root Effects ***
-    [96293] = "Rooted", -- Chains of Ice (Chilblains Rank 1)
-    [87193] = "Rooted", -- Paralysis
-    [39965] = "Rooted", -- Frost Grenade (Item)
-    [55536] = "Rooted", -- Frostweave Net (Item)
-
-    -- *** Non-controlled Root Effects ***
-    [47168] = "Rooted", -- Improved Wing Clip
-    [83301] = "Rooted", -- Improved Cone of Cold (Rank 1)
-    [83302] = "Rooted", -- Improved Cone of Cold (Rank 2)
-    [55080] = "Rooted", -- Shattered Barrier (Rank 1)
-    [83073] = "Rooted", -- Shattered Barrier (Rank 2)
-    [50479] = "Silenced", -- Nether Shock (Nether Ray)
-    [86759] = "Silenced", -- Silenced - Improved Kick (Rank 2)
-
-    [13327] = "Incapacitated", -- Reckless Charge (Item)
-    [4064]  = "Incapacitated", -- Rough Copper Bomb (Item)
-    [4065]  = "Incapacitated", -- Large Copper Bomb (Item)
-    [4066]  = "Incapacitated", -- Small Bronze Bomb (Item)
-    [4067]  = "Incapacitated", -- Big Bronze Bomb (Item)
-    [4068]  = "Incapacitated", -- Iron Grenade (Item)
-    [12421] = "Incapacitated", -- Mithril Frag Bomb (Item)
-    [4069]  = "Incapacitated", -- Big Iron Bomb (Item)
-    [12562] = "Incapacitated", -- The Big One (Item)
-    [12543] = "Incapacitated", -- Hi-Explosive Bomb (Item)
-    [19769] = "Incapacitated", -- Thorium Grenade (Item)
-    [19784] = "Incapacitated", -- Dark Iron Bomb (Item)
-    [30216] = "Incapacitated", -- Fel Iron Bomb (Item)
-    [30461] = "Incapacitated", -- The Bigger One (Item)
-    [30217] = "Incapacitated", -- Adamantite Grenade (Item)
-    [67769] = "Incapacitated", -- Cobalt Frag Bomb (Item)
-    [67890] = "Incapacitated", -- Cobalt Frag Bomb (Item, Frag Belt)
-    [54466] = "Incapacitated", -- Saronite Grenade (Item)
-
-    [13099] = "Rooted", -- Net-o-Matic
-    [13119] = "Rooted", -- Net-o-Matic
-    [13120] = "Rooted", -- Net-o-Matic
-    [13138] = "Rooted", -- Net-o-Matic
-    [13139] = "Rooted", -- Net-o-Matic
-    [16566] = "Rooted", -- Net-o-Matic
-    [52825] = "Rooted", -- Swoop
-    [1090] = "Asleep", -- Magic Dust
-    [835] = "Stunned", -- Tidal Charm
-    [15753] = "Stunned", -- Linken's Boomerang Stun
-    [13237] = "Stunned", -- Goblin Mortar trinket
-    [18798] = "Stunned", -- Freezing Band
-    [32752] = "Stunned", -- Summoning Disorientation
-    [50318] = "Silenced", -- Serenity Dust (moth pet silence)
-
-}
+local spellList = CC.LoCSpells or {}
 
 local hardCCSet = {
     ["Stunned"] = true,
@@ -372,41 +52,20 @@ local function isHardCC(type)
     return hardCCSet[type]
 end
 
-local function isMoP()
-    local version = GetBuildInfo()
-    return type(version) == "string" and version:match("^5%.") ~= nil
-end
-
--- Poor and quick implementation of LoC frame before MoP Beta finally added native. Meant to improve later but ya know..
 local function SetupLoCFrame()
-    if not isMoP() then
-        spellList[2812]  = "Stunned" -- Holy Wrath
-        spellList[64346] = "Disarmed" -- Fiery Payback (Fire Mage Disarm)
-        spellList[19482] = "Stunned" -- War Stomp Doom Guard Stun
-        --spellList[20170]  = "Stunned" -- Seal of Justice (proc)
-    else
-        mop = true
-        spellList[99] = "Disoriented" -- Disorienting Roar (MoP only, 30sec debuff in cata)
-    end
+    if BBLossOfControlFrame or not CC.DB().enableLoCFrame or CC.LoC.Supported() then return end
+
     local f = CreateFrame("Frame")
 
     local parentFrame = CreateFrame("Frame", "BBLossOfControlParentFrame", UIParent)
-    parentFrame:SetScale(BetterBlizzCCDB.lossOfControlScale or 1)
 
-    local iconOnlyMode = BetterBlizzCCDB.lossOfControlIconOnly
+    local iconOnlyMode = CC.DB().lossOfControlIconOnly
 
     local frame = CreateFrame("Frame", "BBLossOfControlFrame", parentFrame, "BackdropTemplate")
     frame:SetSize(256, 58)
-    frame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
     frame:SetFrameStrata("MEDIUM")
     frame:SetToplevel(true)
     frame:Hide()
-
-    if LossOfControlFrame then
-        LossOfControlFrame:SetScale(BetterBlizzCCDB.lossOfControlScale or 1)
-        LossOfControlFrame:ClearAllPoints()
-        LossOfControlFrame:SetPoint("CENTER", UIParent, "CENTER", BetterBlizzCCDB.xPos or 0, BetterBlizzCCDB.yPos or 0)
-    end
 
     frame.fadeInScale = frame:CreateAnimationGroup()
 
@@ -484,12 +143,8 @@ local function SetupLoCFrame()
     frame.Icon.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     frame.Icon.Cooldown:SetAllPoints(frame.Icon)
 
-    local showCooldown = not iconOnlyMode or BetterBlizzCCDB.showCooldownOnLoC
-    frame.Icon.Cooldown:SetDrawEdge(showCooldown)
-    frame.Icon.Cooldown:SetDrawSwipe(showCooldown)
-
     frame.SecondaryIcon = CreateFrame("Frame", nil, frame)
-    frame.SecondaryIcon:SetSize(35, 35)
+    frame.SecondaryIcon:SetSize(48, 48)
     frame.SecondaryIcon:SetPoint("RIGHT", frame.Icon, "LEFT", -4, 0)
 
     frame.SecondaryIcon.Cooldown = CreateFrame("Cooldown", nil, frame.SecondaryIcon, "CooldownFrameTemplate")
@@ -508,13 +163,13 @@ local function SetupLoCFrame()
     frame.Icon.SchoolText:SetPoint("BOTTOM", frame.Icon, "BOTTOM", 0, 1)
     frame.Icon.SchoolText:SetJustifyH("CENTER")
     frame.Icon.SchoolText:SetTextColor(1, 1, 1)
-    frame.Icon.SchoolText:SetFont("Interface/Addons/BetterBlizzPlates/media/Prototype.ttf", 11, "OUTLINE")
+    frame.Icon.SchoolText:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
 
     frame.SecondaryIcon.SchoolText = frame.SecondaryIcon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.SecondaryIcon.SchoolText:SetPoint("BOTTOM", frame.SecondaryIcon, "BOTTOM", 0, 1)
     frame.SecondaryIcon.SchoolText:SetJustifyH("CENTER")
     frame.SecondaryIcon.SchoolText:SetTextColor(1, 1, 1)
-    frame.SecondaryIcon.SchoolText:SetFont("Interface/Addons/BetterBlizzPlates/media/Prototype.ttf", 9, "OUTLINE")
+    frame.SecondaryIcon.SchoolText:SetFont(STANDARD_TEXT_FONT, 11, "OUTLINE")
     frame.SecondaryIcon.SchoolText:SetDrawLayer("OVERLAY", 7) -- ensures it's above cooldown
 
     frame.AbilityName = frame:CreateFontString(nil, "ARTWORK", "MovieSubtitleFont")
@@ -530,20 +185,7 @@ local function SetupLoCFrame()
     frame.TimeLeft.NumberText:SetShadowOffset(2, -2)
     frame.TimeLeft.NumberText:SetTextColor(1, 1, 1)
 
-    frame.AbilityName:SetShown(not iconOnlyMode)
-    frame.TimeLeft:SetShown(not iconOnlyMode)
-
-    local LossOfControlFrameAlphaBg = BetterBlizzCCDB.hideLossOfControlFrameBg and 0 or 0.6
-    local LossOfControlFrameAlphaLines = BetterBlizzCCDB.hideLossOfControlFrameLines and 0 or 1
-    frame.blackBg:SetAlpha(LossOfControlFrameAlphaBg)
-    frame.RedLineTop:SetAlpha(LossOfControlFrameAlphaLines)
-    frame.RedLineBottom:SetAlpha(LossOfControlFrameAlphaLines)
-
-    if LossOfControlFrame then
-        LossOfControlFrame.blackBg:SetAlpha(LossOfControlFrameAlphaBg)
-        LossOfControlFrame.RedLineTop:SetAlpha(LossOfControlFrameAlphaLines)
-        LossOfControlFrame.RedLineBottom:SetAlpha(LossOfControlFrameAlphaLines)
-    end
+    CC.LoC.ApplyOwnLayout(frame)
 
     local function GetSchoolInfo(school)
         local schoolNames = {
@@ -598,12 +240,10 @@ local function SetupLoCFrame()
         local interrupt = frame.interruptData
         local now = GetTime()
 
-        if BetterBlizzCCDB.lossOfControlInterruptsOnly then
-            -- Only show interrupts, ignore all other logic
+        if CC.DB().lossOfControlInterruptsOnly then
             local main = interrupt
             local secondary = nil
 
-            -- Clear expired
             if main and main.expiration <= now then
                 frame.interruptData = nil
                 main = nil
@@ -730,7 +370,6 @@ local function SetupLoCFrame()
 
         getAuraData()
 
-        -- Clear interrupt if expired
         if interrupt and interrupt.expiration <= now then
             frame.interruptData = nil
             interrupt = nil
@@ -772,6 +411,10 @@ local function SetupLoCFrame()
             secondary = nil
         end
 
+        if secondary and secondary ~= interrupt and CC.DB().lossOfControlSecondIconInterruptsOnly then
+            secondary = nil
+        end
+
         frame.mainCC = main
         frame.secondaryCC = secondary
 
@@ -788,10 +431,10 @@ local function SetupLoCFrame()
             local name, r, g, b = nil, 1, 0.819, 0
             if main.type == "Silenced" and interrupt then
                 frame.AbilityName:SetText("Silenced+")
-                name, r, g, b = GetSchoolInfo(interrupt.school)
+                _, r, g, b = GetSchoolInfo(interrupt.school)
             elseif main == interrupt then
                 frame.AbilityName:SetText("Interrupted")
-                name, r, g, b = GetSchoolInfo(interrupt.school)
+                _, r, g, b = GetSchoolInfo(interrupt.school)
             else
                 frame.AbilityName:SetText(main.type or "unknown")
             end
@@ -859,16 +502,16 @@ local function SetupLoCFrame()
         if frame.returnEarly then return end
         checkAuras()
     end)
-    f:RegisterUnitEvent("UNIT_AURA", "player")
 
-    function CC:RegisterEvent()
-        if BetterBlizzCCDB.lossOfControlInterruptsOnly then
-            f:UnregisterAllEvents()
+    function CC.UpdateLoCFrame()
+        CC.LoC.ApplyOwnLayout(frame)
+        if CC.DB().lossOfControlInterruptsOnly then
+            f:UnregisterEvent("UNIT_AURA")
         else
             f:RegisterUnitEvent("UNIT_AURA", "player")
         end
     end
-    CC:RegisterEvent()
+    CC.UpdateLoCFrame()
 
     -- Timer Update
     frame:SetScript("OnUpdate", function(self)
@@ -890,10 +533,20 @@ local function SetupLoCFrame()
         end
     end)
 
+    if silenceReductionItems then
+        local equipWatcher = CreateFrame("Frame")
+        equipWatcher:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+        equipWatcher:SetScript("OnEvent", function(_, _, slotID)
+            if slotID == 1 or slotID == 2 then -- head or neck slot
+                UpdateSilenceReduction()
+            end
+        end)
+    end
+
     frame.interruptWatcher = CreateFrame("Frame")
     frame.interruptWatcher:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame.interruptWatcher:SetScript("OnEvent", function()
-        local _, event, _, sourceGUID, _, _, _, destGUID, _, _, _, spellID, spellName, _, _, _, school = CombatLogGetCurrentEventInfo()
+        local _, event, _, sourceGUID, _, _, _, destGUID, _, _, _, spellID, spellName, _, _, _, school = C_CombatLog.GetCurrentEventInfo()
 
         if not interruptEvents[event] then return end
         if destGUID ~= UnitGUID("player") then return end
@@ -901,30 +554,45 @@ local function SetupLoCFrame()
         local duration = interruptSpells[spellID]
         if not duration then return end
 
-        if event == "SPELL_CAST_SUCCESS" then
+        if event ~= "SPELL_INTERRUPT" then
             -- Check if the unit was casting or channeling AND if it was interruptible
             local _, _, _, _, _, _, notInterruptibleChannel = UnitChannelInfo("player")
 
+            local ccData
             local schoolName = GetSchoolInfo(school) or ""
-            if schoolName == "Interrupted" then return end -- avoid showing on casts like first aid etc
-            if notInterruptibleChannel ~= false then -- nil when not channeling
+            if schoolName == "Interrupted" then
+                for i = 1, C_LossOfControl.GetActiveLossOfControlDataCount() do
+                    local cc = C_LossOfControl.GetActiveLossOfControlData(i)
+                    if cc and cc.locType == "SCHOOL_INTERRUPT" then
+                        ccData = cc
+                        break
+                    end
+                end
+                if ccData then
+                    school = ccData.lockoutSchool
+                    duration = ccData.duration
+                else
+                    return
+                end
+            end -- avoid showing on casts like first aid etc
+            if not ccData and notInterruptibleChannel ~= false then -- nil when not channeling
                 return
             end
         end
 
         -- Reduce duration based on active buffs
         for i = 1, 40 do
-            local name, _, _, _, _, _, _, _, _, auraSpellID = UnitBuff("player", i)
-            if not name then break end
-            local mult = spellLockReducer[auraSpellID]
+            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+            if not aura then break end
+            local mult = spellLockReducer[aura.spellId]
             if mult then
                 duration = duration * mult
             end
         end
 
-        -- Store interrupt data for aura scan logic
-        local schoolName = GetSchoolInfo(school)
+        duration = duration * silenceReduction
 
+        local schoolName = GetSchoolInfo(school)
         local now = GetTime()
         local expirationTime = now + duration
         local remaining = expirationTime - now
@@ -941,63 +609,15 @@ local function SetupLoCFrame()
         }
 
 
-        checkAuras() -- force update
+        checkAuras()
 
     end)
 end
 
-local function InitDefaults()
-    local defaultSettings = {
-        showCooldownOnLoC = true,
-        hideLossOfControlFrameBg = false,
-        hideLossOfControlFrameLines = false,
-        lossOfControlScale = 1,
-        xPos = 0,
-        yPos = 0,
-        lossOfControlIconOnly = false,
-    }
 
-    BetterBlizzCCDB = BetterBlizzCCDB or {}
-    for k, v in pairs(defaultSettings) do
-        if BetterBlizzCCDB[k] == nil then
-            BetterBlizzCCDB[k] = v
-        end
-    end
-end
-
-local f = CreateFrame("Frame")
-f:RegisterEvent("ADDON_LOADED")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:Hide()
-
-local function ShowOriginalLoC(showOg)
-    if showOg then
-        LossOfControlFrame:SetParent(UIParent)
-        BBLossOfControlParentFrame:SetParent(f)
-        BBLossOfControlFrame.returnEarly = true
-    else
-        LossOfControlFrame:SetParent(f)
-        BBLossOfControlParentFrame:SetParent(UIParent)
-        BBLossOfControlFrame.returnEarly = nil
-    end
-end
-
-f:SetScript("OnEvent", function(_, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == "BetterBlizzCC" then
-        InitDefaults()
-        SetupLoCFrame()
-        CC:CreateGUI()
-        f:UnregisterEvent("ADDON_LOADED")
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        if not mop then
-            f:UnregisterEvent("PLAYER_ENTERING_WORLD")
-            return
-        end
-        local _, instanceType = IsInInstance()
-        if instanceType == "party" or instanceType == "raid" or instanceType == "scenario" then
-            ShowOriginalLoC(true)
-        else
-            ShowOriginalLoC(false)
-        end
+table.insert(CC.EnableCallbacks, function()
+    SetupLoCFrame()
+    if silenceReductionItems then
+        CC.On("PLAYER_ENTERING_WORLD", UpdateSilenceReduction)
     end
 end)

@@ -1,4 +1,4 @@
-## Interface: 20505
+## Interface: 20505, 20506
 ## Title: Better|cff00c0ffBlizz|rCC
 ## Notes: Loss of Control display similar to Retail but with a few improvements.
 ## Author: Bodify
@@ -8,5 +8,14 @@
 ## X-Curse-Project-ID: 1295073
 ## X-Wago-ID: 56nd2AG9
 
-TBC\BetterBlizzCC.lua
-gui.lua
+embeds.xml
+GUI\BetterBlizzGUI.lua
+GUI\BBGPopup.lua
+Core\Constants.lua
+Core\BetterBlizzCC.lua
+Core\Profiles.lua
+Shared\timerFormatter.lua
+Shared\lossOfControl.lua
+Data\Spells\Spells_TBC.lua
+Modules\Classics.lua
+GUI\GUI.lua

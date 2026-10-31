@@ -1,3 +1,2 @@
-# 1.0.7
-TBC: Add interrupt duration lockout fix for a few 20% reduction items.
-TBC: Remove wyvern sting dot spell id
+# 1.1.0
+Big rework with new settings and GUI and support for all WoW versions including Forever. Best CC handling on Retail, Forever and MoP since it comes directly from the game there. Era, TBC and Wrath might still miss some CC's due to it being based on bundled data.
