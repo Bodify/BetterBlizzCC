@@ -1097,13 +1097,13 @@ function LoC.TestOwn(frame, text)
         frame.fadeInScale:Stop()
         frame.fadeInScale:Play()
     end
-    frame.TimeLeft.NumberText:SetText(string.format("%.1f seconds", duration))
+    frame.TimeLeft.NumberText:SetText(string.format("%.1f %s", duration, LOSS_OF_CONTROL_SECONDS or "seconds"))
     MakeDraggable(frame, LoC.ApplyOwnLayout)
 
     ownTestTicker = C_Timer.NewTicker(0.1, function()
         local remaining = frame.expiration and (frame.expiration - GetTime()) or 0
         if remaining > 0 then
-            frame.TimeLeft.NumberText:SetText(string.format("%.1f seconds", remaining))
+            frame.TimeLeft.NumberText:SetText(string.format("%.1f %s", remaining, LOSS_OF_CONTROL_SECONDS or "seconds"))
             return
         end
         if SettingsOpen() then

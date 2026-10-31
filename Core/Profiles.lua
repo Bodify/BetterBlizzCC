@@ -1,4 +1,5 @@
 local _, CC = ...
+local L = CC.L
 
 local LibSerialize = LibStub("LibSerialize")
 local LibDeflate = LibStub("LibDeflate")
@@ -120,7 +121,7 @@ function CC.ProfileExists(name)
 end
 
 function CC.SetProfile(name)
-    if not Root().profiles[name] then return nil, "That profile no longer exists." end
+    if not Root().profiles[name] then return nil, L["Msg.ProfileMissing"] end
     Root().profile = name
     CC.RefreshLossOfControl()
     return name
@@ -128,21 +129,21 @@ end
 
 function CC.CreateProfile(name, copyFrom)
     name = CC.NormalizeProfileName(name)
-    if not name then return nil, "Profile name cannot be empty." end
+    if not name then return nil, L["Msg.ProfileNameEmpty"] end
     local profiles = Root().profiles
-    if profiles[name] then return nil, string.format("A profile named \"%s\" already exists.", name) end
+    if profiles[name] then return nil, string.format(L["Msg.ProfileExists"], name) end
     profiles[name] = CopySettings(copyFrom and profiles[copyFrom] or {}, {})
     return CC.SetProfile(name)
 end
 
 function CC.RenameProfile(old, new)
     local profiles = Root().profiles
-    if old == CC.DEFAULT_PROFILE then return nil, "The Default profile cannot be renamed." end
-    if not profiles[old] then return nil, "That profile no longer exists." end
+    if old == CC.DEFAULT_PROFILE then return nil, L["Msg.DefaultCannotRename"] end
+    if not profiles[old] then return nil, L["Msg.ProfileMissing"] end
     new = CC.NormalizeProfileName(new)
-    if not new then return nil, "Profile name cannot be empty." end
+    if not new then return nil, L["Msg.ProfileNameEmpty"] end
     if new == old then return old end
-    if profiles[new] then return nil, string.format("A profile named \"%s\" already exists.", new) end
+    if profiles[new] then return nil, string.format(L["Msg.ProfileExists"], new) end
     profiles[new], profiles[old] = profiles[old], nil
     if Root().profile == old then
         Root().profile = new
@@ -152,8 +153,8 @@ end
 
 function CC.DeleteProfile(name)
     local profiles = Root().profiles
-    if name == CC.DEFAULT_PROFILE then return nil, "The Default profile cannot be deleted." end
-    if not profiles[name] then return nil, "That profile no longer exists." end
+    if name == CC.DEFAULT_PROFILE then return nil, L["Msg.DefaultCannotDelete"] end
+    if not profiles[name] then return nil, L["Msg.ProfileMissing"] end
     profiles[name] = nil
     if Root().profile == name then
         CC.SetProfile(CC.DEFAULT_PROFILE)
@@ -163,7 +164,7 @@ end
 
 function CC.ResetProfile(name)
     local profile = Root().profiles[name]
-    if not profile then return nil, "That profile no longer exists." end
+    if not profile then return nil, L["Msg.ProfileMissing"] end
     wipe(profile)
     CC.FillDefaults(profile)
     if Root().profile == name then
@@ -174,7 +175,7 @@ end
 
 function CC.ExportProfile(name)
     local profile = Root().profiles[name]
-    if not profile then return nil, "That profile no longer exists." end
+    if not profile then return nil, L["Msg.ProfileMissing"] end
     local settings = {}
     for key, value in pairs(profile) do
         if IsSettingKey(key) and ValidValue(key, value) and not SameValue(value, CC.defaultSettings[key]) then
@@ -184,33 +185,33 @@ function CC.ExportProfile(name)
     local payload = { addon = "BetterBlizzCC", version = EXPORT_VERSION, name = name, settings = settings }
     local serialized = LibSerialize:SerializeEx({ errorOnUnserializableType = false }, payload)
     local compressed = LibDeflate:CompressDeflate(serialized, { level = 9 })
-    if not compressed then return nil, "Could not compress the profile." end
+    if not compressed then return nil, L["Msg.CompressFailed"] end
     return EXPORT_PREFIX .. LibDeflate:EncodeForPrint(compressed)
 end
 
 function CC.DecodeProfileString(str)
-    if type(str) ~= "string" then return nil, "Nothing to import." end
+    if type(str) ~= "string" then return nil, L["Msg.NothingToImport"] end
     str = str:gsub("%s+", "")
-    if str == "" then return nil, "Nothing to import." end
+    if str == "" then return nil, L["Msg.NothingToImport"] end
     if str:sub(1, #EXPORT_PREFIX) ~= EXPORT_PREFIX then
-        return nil, "Not a BetterBlizzCC profile."
+        return nil, L["Msg.NotProfileString"]
     end
     local decoded = LibDeflate:DecodeForPrint(str:sub(#EXPORT_PREFIX + 1))
     local decompressed = decoded and LibDeflate:DecompressDeflate(decoded)
-    if not decompressed then return nil, "The profile string is damaged." end
+    if not decompressed then return nil, L["Msg.StringDamaged"] end
     local ok, payload = LibSerialize:Deserialize(decompressed)
     if not ok or type(payload) ~= "table" or payload.addon ~= "BetterBlizzCC" or type(payload.settings) ~= "table" then
-        return nil, "The profile string is damaged."
+        return nil, L["Msg.StringDamaged"]
     end
     if payload.version ~= EXPORT_VERSION then
-        return nil, "This profile is from an incompatible version."
+        return nil, L["Msg.IncompatibleVersion"]
     end
     return payload
 end
 
 function CC.ImportProfile(payload, name)
     name = CC.NormalizeProfileName(name)
-    if not name then return nil, "Profile name cannot be empty." end
+    if not name then return nil, L["Msg.ProfileNameEmpty"] end
     local profiles = Root().profiles
     local profile = profiles[name] or {}
     wipe(profile)

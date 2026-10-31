@@ -52,6 +52,48 @@ local function isHardCC(type)
     return hardCCSet[type]
 end
 
+local L = CC.L
+local ccTypeText
+
+local function CCTypeText(ccType)
+    if not ccTypeText then
+        ccTypeText = {
+            ["Stunned"] = LOSS_OF_CONTROL_DISPLAY_STUN,
+            ["Feared"] = LOSS_OF_CONTROL_DISPLAY_FEAR,
+            ["Horrified"] = LOSS_OF_CONTROL_DISPLAY_HORROR,
+            ["Cycloned"] = LOSS_OF_CONTROL_DISPLAY_CYCLONE,
+            ["Incapacitated"] = LOSS_OF_CONTROL_DISPLAY_INCAPACITATE,
+            ["Mind Controlled"] = L["Loc.MindControlled"],
+            ["Disoriented"] = LOSS_OF_CONTROL_DISPLAY_DISORIENT,
+            ["Polymorphed"] = LOSS_OF_CONTROL_DISPLAY_POLYMORPH,
+            ["Hexed"] = L["Loc.Hexed"],
+            ["Frozen"] = LOSS_OF_CONTROL_DISPLAY_FREEZE,
+            ["Blinded"] = L["Loc.Blinded"],
+            ["Seduced"] = L["Loc.Seduced"],
+            ["Asleep"] = LOSS_OF_CONTROL_DISPLAY_SLEEP,
+            ["Shackled"] = LOSS_OF_CONTROL_DISPLAY_SHACKLE_UNDEAD,
+            ["Gouged"] = L["Loc.Gouged"],
+            ["Sapped"] = LOSS_OF_CONTROL_DISPLAY_SAP,
+            ["Silenced"] = LOSS_OF_CONTROL_DISPLAY_SILENCE,
+            ["Disarmed"] = LOSS_OF_CONTROL_DISPLAY_DISARM,
+            ["Rooted"] = LOSS_OF_CONTROL_DISPLAY_ROOT,
+        }
+    end
+    return ccTypeText[ccType] or ccType
+end
+
+local function InterruptedText()
+    return LOSS_OF_CONTROL_DISPLAY_INTERRUPT or "Interrupted"
+end
+
+local function SilencedPlusText()
+    return (LOSS_OF_CONTROL_DISPLAY_SILENCE or "Silenced") .. "+"
+end
+
+local function SecondsText(timeLeft)
+    return string.format("%.1f %s", timeLeft, LOSS_OF_CONTROL_SECONDS or "seconds")
+end
+
 local function SetupLoCFrame()
     if BBLossOfControlFrame or not CC.DB().enableLoCFrame or CC.LoC.Supported() then return end
 
@@ -187,52 +229,57 @@ local function SetupLoCFrame()
 
     CC.LoC.ApplyOwnLayout(frame)
 
+    local schoolNames = {
+        -- Single schools
+        [1]   = {"Physical",     0.85, 0.65, 0.45},
+        [2]   = {"Holy",         1.00, 0.95, 0.60},
+        [4]   = {"Fire",         1.00, 0.35, 0.10},
+        [8]   = {"Nature",       0.30, 0.85, 0.30},
+        [16]  = {"Frost",        0.45, 0.70, 1.00},
+        [32]  = {"Shadow",       0.50, 0.25, 0.75},
+        [64]  = {"Arcane",       0.80, 0.60, 1.00},
+
+        -- Dual/multi schools
+        [3]   = {"Holystrike",   1.00, 0.85, 0.50}, -- Holy + Physical
+        [5]   = {"Flamestrike",  1.00, 0.45, 0.10}, -- Fire + Physical
+        [6]   = {"Holyfire",     1.00, 0.65, 0.30}, -- Holy + Fire
+        [9]   = {"Stormstrike",  0.40, 0.80, 1.00}, -- Nature + Physical
+        [10]  = {"Holystorm",    0.90, 0.90, 0.60}, -- Holy + Nature
+        [12]  = {"Firestorm",    1.00, 0.55, 0.10}, -- Fire + Nature
+        [17]  = {"Froststrike",  0.50, 0.75, 1.00}, -- Frost + Physical
+        [18]  = {"Holyfrost",    0.80, 0.90, 1.00}, -- Holy + Frost
+        [20]  = {"Frostfire",    0.80, 0.45, 1.00}, -- Fire + Frost
+        [24]  = {"Froststorm",   0.50, 0.80, 1.00}, -- Frost + Nature
+        [28]  = {"Spellfrost",   0.60, 0.70, 1.00}, -- Arcane + Frost
+        [33]  = {"Shadowstrike", 0.65, 0.25, 0.60}, -- Shadow + Physical
+        [34]  = {"Twilight",     0.70, 0.40, 0.85}, -- Shadow + Holy
+        [36]  = {"Shadowflame",  0.80, 0.30, 0.60}, -- Shadow + Fire
+        [40]  = {"Shadowstorm",  0.50, 0.30, 0.85}, -- Shadow + Nature
+        [48]  = {"Shadowfrost",  0.55, 0.40, 0.85}, -- Shadow + Frost
+        [65]  = {"Spellstrike",  0.90, 0.60, 1.00}, -- Arcane + Physical
+        [66]  = {"Divine",       1.00, 0.85, 0.55}, -- Holy + Arcane
+        [96]  = {"Spellshadow",  0.75, 0.45, 0.85}, -- Arcane + Shadow
+        [124] = {"Elemental",    0.95, 0.60, 0.20}, -- Fire + Frost + Nature
+        [126] = {"Chromatic",    0.95, 0.95, 1.00}, -- All elemental schools
+        [127] = {"Magic",        0.90, 0.90, 1.00}, -- Generic catch-all magic
+
+        -- Extra
+        [200] = {"Astral",       0.50, 0.85, 1.00}, -- Arcane + Nature
+        [201] = {"Chaos",        1.00, 0.15, 0.15}, -- All schools incl. Physical
+        [202] = {"Chimeric",     0.95, 0.55, 0.85}, -- Arcane + Fire + Frost
+        [203] = {"Cosmic",       0.80, 0.80, 1.00}, -- Arcane + Holy + Nature + Shadow
+        [204] = {"Radiant",      1.00, 0.70, 0.40}, -- Fire + Holy
+        [205] = {"Volcanic",     1.00, 0.40, 0.20}, -- Fire + Nature
+        [206] = {"Plague",       0.55, 0.80, 0.40}, -- Shadow + Nature
+    }
+
     local function GetSchoolInfo(school)
-        local schoolNames = {
-            -- Single schools
-            [1]   = {"Physical",     0.85, 0.65, 0.45},
-            [2]   = {"Holy",         1.00, 0.95, 0.60},
-            [4]   = {"Fire",         1.00, 0.35, 0.10},
-            [8]   = {"Nature",       0.30, 0.85, 0.30},
-            [16]  = {"Frost",        0.45, 0.70, 1.00},
-            [32]  = {"Shadow",       0.50, 0.25, 0.75},
-            [64]  = {"Arcane",       0.80, 0.60, 1.00},
-
-            -- Dual/multi schools
-            [3]   = {"Holystrike",   1.00, 0.85, 0.50}, -- Holy + Physical
-            [5]   = {"Flamestrike",  1.00, 0.45, 0.10}, -- Fire + Physical
-            [6]   = {"Holyfire",     1.00, 0.65, 0.30}, -- Holy + Fire
-            [9]   = {"Stormstrike",  0.40, 0.80, 1.00}, -- Nature + Physical
-            [10]  = {"Holystorm",    0.90, 0.90, 0.60}, -- Holy + Nature
-            [12]  = {"Firestorm",    1.00, 0.55, 0.10}, -- Fire + Nature
-            [17]  = {"Froststrike",  0.50, 0.75, 1.00}, -- Frost + Physical
-            [18]  = {"Holyfrost",    0.80, 0.90, 1.00}, -- Holy + Frost
-            [20]  = {"Frostfire",    0.80, 0.45, 1.00}, -- Fire + Frost
-            [24]  = {"Froststorm",   0.50, 0.80, 1.00}, -- Frost + Nature
-            [28]  = {"Spellfrost",   0.60, 0.70, 1.00}, -- Arcane + Frost
-            [33]  = {"Shadowstrike", 0.65, 0.25, 0.60}, -- Shadow + Physical
-            [34]  = {"Twilight",     0.70, 0.40, 0.85}, -- Shadow + Holy
-            [36]  = {"Shadowflame",  0.80, 0.30, 0.60}, -- Shadow + Fire
-            [40]  = {"Shadowstorm",  0.50, 0.30, 0.85}, -- Shadow + Nature
-            [48]  = {"Shadowfrost",  0.55, 0.40, 0.85}, -- Shadow + Frost
-            [65]  = {"Spellstrike",  0.90, 0.60, 1.00}, -- Arcane + Physical
-            [66]  = {"Divine",       1.00, 0.85, 0.55}, -- Holy + Arcane
-            [96]  = {"Spellshadow",  0.75, 0.45, 0.85}, -- Arcane + Shadow
-            [124] = {"Elemental",    0.95, 0.60, 0.20}, -- Fire + Frost + Nature
-            [126] = {"Chromatic",    0.95, 0.95, 1.00}, -- All elemental schools
-            [127] = {"Magic",        0.90, 0.90, 1.00}, -- Generic catch-all magic
-
-            -- Extra
-            [200] = {"Astral",       0.50, 0.85, 1.00}, -- Arcane + Nature
-            [201] = {"Chaos",        1.00, 0.15, 0.15}, -- All schools incl. Physical
-            [202] = {"Chimeric",     0.95, 0.55, 0.85}, -- Arcane + Fire + Frost
-            [203] = {"Cosmic",       0.80, 0.80, 1.00}, -- Arcane + Holy + Nature + Shadow
-            [204] = {"Radiant",      1.00, 0.70, 0.40}, -- Fire + Holy
-            [205] = {"Volcanic",     1.00, 0.40, 0.20}, -- Fire + Nature
-            [206] = {"Plague",       0.55, 0.80, 0.40}, -- Shadow + Nature
-        }
-
-        return unpack(schoolNames[school] or {"Interrupted", 1, 1, 1})
+        local info = schoolNames[school]
+        if not info then
+            return InterruptedText(), 1, 1, 1
+        end
+        local name = school <= 127 and C_Spell.GetSchoolString(school) or info[1]
+        return name, info[2], info[3], info[4]
     end
 
     local function checkAuras()
@@ -263,7 +310,7 @@ local function SetupLoCFrame()
                 end
 
                 local name, r, g, b = GetSchoolInfo(main.school)
-                frame.AbilityName:SetText("Interrupted")
+                frame.AbilityName:SetText(InterruptedText())
                 frame.AbilityName:SetTextColor(r, g, b)
 
                 frame.duration = main.duration
@@ -430,13 +477,13 @@ local function SetupLoCFrame()
 
             local name, r, g, b = nil, 1, 0.819, 0
             if main.type == "Silenced" and interrupt then
-                frame.AbilityName:SetText("Silenced+")
+                frame.AbilityName:SetText(SilencedPlusText())
                 _, r, g, b = GetSchoolInfo(interrupt.school)
             elseif main == interrupt then
-                frame.AbilityName:SetText("Interrupted")
+                frame.AbilityName:SetText(InterruptedText())
                 _, r, g, b = GetSchoolInfo(interrupt.school)
             else
-                frame.AbilityName:SetText(main.type or "unknown")
+                frame.AbilityName:SetText(main.type and CCTypeText(main.type) or UNKNOWN or "Unknown")
             end
             frame.AbilityName:SetTextColor(r, g, b)
 
@@ -523,7 +570,7 @@ local function SetupLoCFrame()
             if timeLeft <= 0 then
                 checkAuras()
             else
-                self.TimeLeft.NumberText:SetText(string.format("%.1f seconds", timeLeft))
+                self.TimeLeft.NumberText:SetText(SecondsText(timeLeft))
 
                 -- Check if secondary interrupt has expired
                 if self.interruptData and self.secondaryCC == self.interruptData and self.interruptData.expiration <= now then
@@ -560,8 +607,7 @@ local function SetupLoCFrame()
             local _, _, _, _, _, _, notInterruptibleChannel = UnitChannelInfo("player")
 
             local ccData
-            local schoolName = GetSchoolInfo(school) or ""
-            if schoolName == "Interrupted" then
+            if not schoolNames[school] then
                 for i = 1, C_LossOfControl.GetActiveLossOfControlDataCount() do
                     local cc = C_LossOfControl.GetActiveLossOfControlData(i)
                     if cc and cc.locType == "SCHOOL_INTERRUPT" then

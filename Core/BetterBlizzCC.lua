@@ -85,6 +85,7 @@ end
 
 function addon:OnInitialize()
     CC.InitProfiles()
+    CC.ApplyLocale()
 end
 
 function addon:OnEnable()

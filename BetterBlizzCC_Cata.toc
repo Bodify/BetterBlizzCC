@@ -9,6 +9,7 @@
 ## X-Wago-ID: 56nd2AG9
 
 embeds.xml
+Locales\Locales.xml
 GUI\BetterBlizzGUI.lua
 GUI\BBGPopup.lua
 Core\Constants.lua
