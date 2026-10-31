@@ -510,6 +510,7 @@ local function SetupLoCFrame()
         else
             f:RegisterUnitEvent("UNIT_AURA", "player")
         end
+        CC.LoC.RefreshOwnTest()
     end
     CC.UpdateLoCFrame()
 
